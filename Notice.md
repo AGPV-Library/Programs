@@ -3,7 +3,7 @@
 
 The Azhikode Grama Panchayat Vagbhadananda Library is proud to announce the **Launching Ceremony** of its new digital initiatives and programs.  
 
-📚 As part of the **Reading Day Celebrations**, the library is introducing the *Vagbatananda Reading Month Quiz Series* and other community programs.  
+📚 As part of the **Reading Day Celebrations**, the library is introducing the *"Vagbatananda Reading Month Quiz Series"* and other community programs.  
 
 All members and well‑wishers are cordially invited to join us for this special occasion and witness the unveiling of our new digital platform.  
 
