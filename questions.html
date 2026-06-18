@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Quiz Question</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Malayalam:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<!--
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // Check the referring page
+  const referrer = document.referrer;
+
+  if (!referrer.includes("quiz.html")) {
+    alert("❌ You must start the quiz from quiz.html!");
+    window.location.href = "quiz.html";
+  }
+});
+</script>
+-->
+
+  <!-- Login -->
+  <div id="login-form" class="login-box">
+    <h2>Login to Quiz</h2>
+    <input type="text" id="name" class="input-field" placeholder="Name" required><br><br>
+    <input type="text" id="phone" class="input-field" placeholder="Phone" required><br><br>
+    <button id="login-btn" class="btn">Login</button>
+    <p id="login-error" style="color:red;"></p>
+  </div>
+
+  <!-- Quiz -->
+  <div id="quiz-content" class="quiz-box" style="display:none;">
+    <h2 id="question-text">Loading question...</h2>
+    <div id="choices"></div>
+    <p id="result"></p>
+  </div>
+
+  <script>
+  const API_BASE = "https://agvp-library-backend.onrender.com";
+  let userName = "";
+  let userPhone = "";
+  let startTime;
+
+  // Login button
+  document.getElementById("login-btn").onclick = () => {
+    const name = document.getElementById("name").value.trim();
+    const phone = document.getElementById("phone").value.trim();
+    const errorEl = document.getElementById("login-error");
+
+    // Admin bypass
+    if (name.toLowerCase() === "admin" && phone === "0000000000") {
+      alert("Admin test login successful.");
+      startQuiz(name, phone);
+      return;
+    }
+
+    // Normal validation
+    if (!name || !phone) {
+      errorEl.textContent = "Please enter both name and phone.";
+      return;
+    }
+
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!phoneRegex.test(phone)) {
+      errorEl.textContent = "Please enter a valid 10-digit phone number.";
+      return;
+    }
+
+    if (name.toLowerCase() === "admin") {
+      errorEl.textContent = "The name 'Admin' is reserved.";
+      return;
+    }
+
+    checkDuplicateEntry(name, phone, errorEl);
+  };
+
+  async function checkDuplicateEntry(name, phone, errorEl) {
+    try {
+      const res = await fetch(`${API_BASE}/check-submission`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: phone })
+      });
+
+      const data = await res.json();
+      
+      if (data.alreadySubmitted) {
+        errorEl.textContent = "❌ Sorry, you've answered today's question!";
+        return;
+      }
+
+      startQuiz(name, phone);
+    } catch (err) {
+      console.error("Error checking submission:", err);
+      startQuiz(name, phone);
+    }
+  }
+
+  function startQuiz(name, phone) {
+    userName = name;
+    userPhone = phone;
+    document.getElementById("login-form").style.display = "none";
+    document.getElementById("quiz-content").style.display = "block";
+    loadQuestion();
+  }
+
+  async function loadQuestion() {
+    const res = await fetch(`${API_BASE}/question`);
+    const data = await res.json();
+
+    const qText = document.getElementById("question-text");
+    const choicesDiv = document.getElementById("choices");
+    const feedback = document.getElementById("result");
+
+    choicesDiv.innerHTML = "";
+    feedback.textContent = "";
+
+    // Handle quiz status
+    if (data.status === "not_started") {
+      qText.textContent = "📅 Quiz starts on June 19";
+      return;
+    }
+    if (data.status === "ended") {
+      qText.textContent = "⏳ Quiz has ended.";
+      return;
+    }
+    if (data.status === "no_question") {
+      qText.textContent = "No question available today.";
+      return;
+    }
+
+    // Show question
+    qText.textContent = `Q${data.questionNo}: ${data.question}`;
+    startTime = Date.now();
+
+    // Create choice buttons
+    data.choices.forEach((choice, i) => {
+      const key = String.fromCharCode(65 + i); // A, B, C, D
+      const btn = document.createElement("button");
+      btn.className = "btn choice-btn";
+      btn.textContent = `${key}: ${choice}`;
+      btn.onclick = () => submitAnswer(data.questionNo, key);
+      choicesDiv.appendChild(btn);
+    });
+  }
+
+  async function submitAnswer(questionNo, choice) {
+    const feedback = document.getElementById("result");
+    const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+
+    const payload = {
+      name: userName,
+      phone: userPhone,
+      answer: choice,
+      questionNo: questionNo,
+      timeTaken: timeTaken
+    };
+
+    try {
+      const res = await fetch(`${API_BASE}/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        const message = result?.message || `Server error (${res.status})`;
+        feedback.textContent = `❌ ${message}`;
+        return;
+      }
+
+      feedback.textContent = result.isCorrect ? "✅ Correct!" : "❌ Wrong!";
+      document.querySelectorAll(".choice-btn").forEach(btn => btn.disabled = true);
+
+      // Redirect to quiz.html after 2 seconds
+      setTimeout(() => {
+        window.location.href = "quiz.html";
+      }, 2000);
+    } catch (err) {
+      feedback.textContent = "❌ Error submitting answer. Please try again.";
+    }
+  }
+  </script>
+</body>
+</html>
